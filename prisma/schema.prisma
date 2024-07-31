@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Category {
+  NORMAL
+  TEACHER_ASSIGNED
+  CONTEST
+}
+
+enum Difficulty {
+  Easy
+  Medium
+  Hard
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  name        String
+  email       String    @unique
+  password    String    // Add this line
+  leetcodeId  String    @unique
+  teamId      Int?
+  team        Team?     @relation(fields: [teamId], references: [id])
+  solutions   Solution[]
+  totalPoints Int       @default(0)
+}
+
+model Team {
+  id          Int       @id @default(autoincrement())
+  name        String
+  members     User[]
+  solutions   Solution[] @relation("TeamSolutions") // Add opposite relation field
+  totalPoints Int       @default(0)
+}
+
+model TeacherQuestion {
+  id         Int               @id @default(autoincrement())
+  createdAt  DateTime          @default(now())
+  points     Int
+  questions  LeetCodeQuestion[] @relation("TeacherQuestions")
+  deadline   DateTime
+}
+
+model Solution {
+  id           Int            @id @default(autoincrement())
+  submissionID Int
+  userId       Int
+  category     Category
+  user         User           @relation(fields: [userId], references: [id])
+  teamId       Int?
+  team         Team?          @relation(fields: [teamId], references: [id], name: "TeamSolutions")
+  questionId   Int
+  question     LeetCodeQuestion @relation(fields: [questionId], references: [id], name: "LeetCodeSolutions")
+  points       Int
+  createdAt    DateTime       @default(now())
+}
+
+model LeetCodeQuestion {
+  id               Int                   @id @default(autoincrement())
+  acRate           Float
+  difficulty       Difficulty
+  frontendQuestionId String              @unique
+  status           String?
+  title            String
+  titleSlug        String
+  solutions        Solution[]            @relation("LeetCodeSolutions") // Add opposite relation field
+  teacherQuestions TeacherQuestion[]     @relation("TeacherQuestions")
+}
+
+model Contest {
+  id         Int                @id @default(autoincrement())
+  title      String
+  startTime  Int
+  participations ContestParticipation[]
+}
+
+model ContestParticipation {
+  id                   Int       @id @default(autoincrement())
+  attended             Boolean
+  problemsSolved       Int
+  totalProblems        Int
+  finishTimeInSeconds  Int
+  contestId            Int
+  contest              Contest   @relation(fields: [contestId], references: [id])
+}
